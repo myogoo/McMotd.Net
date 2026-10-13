@@ -8,6 +8,25 @@ namespace McMotdParser.Data
 {
     partial class MotdData
     {
+        internal static readonly Dictionary<char, string> BedrockColors = new Dictionary<char, string>
+        {
+            ['g'] = "#DDD605", ['h'] = "#E3D4D1", ['i'] = "#CECACA", ['j'] = "#443A3B",
+            ['m'] = "#971607", ['n'] = "#B4684D", ['p'] = "#DEB12D", ['q'] = "#47A036",
+            ['s'] = "#2CBAA8", ['t'] = "#21497B", ['u'] = "#9A5CC6", ['v'] = "#EB7114", ['w'] = "#8BB3FF"
+        };
+
+        internal static bool TryColor(string? value, out string color)
+        {
+            color = "#808080";
+            if (value is null) return false;
+            if (value.Length == 7 && value[0] == '#' && value.Skip(1).All(Uri.IsHexDigit))
+            {
+                color = value;
+                return true;
+            }
+            return ColorDict.TryGetValue(value.ToLowerInvariant(), out color!);
+        }
+
         public static Dictionary<string, string> ColorDict = new Dictionary<string, string>(){
                     { "0", "#000000" },
                     { "1", "#0000AA" },

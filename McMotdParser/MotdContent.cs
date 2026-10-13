@@ -1,26 +1,60 @@
 using McMotdParser.Deserializer;
 using McMotdParser.Enum;
 using System.Text.Json.Serialization;
+using System.Text.Json;
+using System.Globalization;
+using System.Text;
 
 namespace McMotdParser;
 public class MotdContent
 {
     public string Color { get; set; } = "#808080";
-    public string Text { get; set; }
+    public string Text { get; set; } = string.Empty;
     public HashSet<TextFormatEnum> TextFormatting { get; set; } = new HashSet<TextFormatEnum>();
     public bool LineBreak { get; set; } = false;
+    public string? Font { get; set; }
+    public uint? ShadowColor { get; set; }
+    public JsonElement? Component { get; set; }
+
+    internal MotdContent CopyStyle() => new MotdContent
+    {
+        Color = Color,
+        TextFormatting = new HashSet<TextFormatEnum>(TextFormatting),
+        Font = Font,
+        ShadowColor = ShadowColor,
+        Component = Component
+    };
+
+    public string GetDisplayText()
+    {
+        if (!TextFormatting.Contains(TextFormatEnum.Obfuscated)) return Text;
+        var result = new StringBuilder();
+        var elements = StringInfo.GetTextElementEnumerator(Text);
+        while (elements.MoveNext())
+        {
+            var element = elements.GetTextElement();
+            result.Append(string.IsNullOrWhiteSpace(element) ? element : ((char)Random.Shared.Next(33, 127)).ToString());
+        }
+        return result.ToString();
+    }
 
     public override bool Equals(object? obj)
     {
-        if (obj == null) return false;
-        if (!(obj.GetType() == typeof(MotdContent))) return false;
+        return obj is MotdContent target
+            && obj.GetType() == typeof(MotdContent)
+            && Text == target.Text
+            && Color == target.Color
+            && LineBreak == target.LineBreak
+            && Font == target.Font
+            && ShadowColor == target.ShadowColor
+            && Component?.GetRawText() == target.Component?.GetRawText()
+            && TextFormatting.SetEquals(target.TextFormatting);
+    }
 
-        var target = (MotdContent)obj;
-        if (this.Text != target.Text) return false;
-        if (this.Color != target.Color) return false;
-        //if(this.TextFormatting.Equals(target.TextFormatting)) return false;
-        if (this.TextFormatting.Count != target.TextFormatting.Count) return false;
-        return true;
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Text, Color, LineBreak, Font, ShadowColor, Component?.GetRawText(),
+            HashSet<TextFormatEnum>.CreateSetComparer().GetHashCode(TextFormatting));
     }
 }
 
@@ -28,22 +62,22 @@ public class MotdContent
 public class MotdContents
 {
     [JsonConverter(typeof(MotdDeserializer))]
-    public List<MotdContent> Contents { get; set; }
+    public List<MotdContent> Contents { get; set; } = new List<MotdContent>();
 
     public override bool Equals(object? obj)
     {
-        if (obj == null) return false;
-        if (!(obj.GetType() == typeof(MotdContents))) return false;
+        return obj is MotdContents target
+            && obj.GetType() == typeof(MotdContents)
+            && Contents.SequenceEqual(target.Contents);
+    }
 
-        var targets = (MotdContents)obj;
-
-        for (int i = 0; i < Contents.Count; i++)
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        foreach (var content in Contents)
         {
-            var content = Contents[i];
-            var target = targets.Contents[i];
-            if (!content.Equals(target)) return false;
+            hash.Add(content);
         }
-
-        return true;
+        return hash.ToHashCode();
     }
 }

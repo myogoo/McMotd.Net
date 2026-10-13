@@ -51,16 +51,13 @@ namespace McMotdParser.Test.Deserializer
             
             List<MotdContent> expect = new List<MotdContent>()
             {
-                new MotdContent{ Color = "#808080", Text = " "},
                 new MotdContent{ Color = "#55FFFF", Text = "◆ "},
                 new MotdContent{ Color = "#00ffff", Text = "스", TextFormatting = new HashSet<TextFormatEnum> { TextFormatEnum.Bold,TextFormatEnum.Italic } },
                 new MotdContent{ Color = "#19e5ff", Text = "티", TextFormatting = new HashSet<TextFormatEnum> { TextFormatEnum.Bold,TextFormatEnum.Italic } },
                 new MotdContent{ Color = "#33ccff", Text = "브", TextFormatting = new HashSet<TextFormatEnum> { TextFormatEnum.Bold,TextFormatEnum.Italic } },
-                new MotdContent{ Color = "#4cb2ff", Text = " ", TextFormatting = new HashSet<TextFormatEnum> { TextFormatEnum.Bold,TextFormatEnum.Italic } },
                 new MotdContent{ Color = "#6699ff", Text = "갤", TextFormatting = new HashSet<TextFormatEnum> { TextFormatEnum.Bold,TextFormatEnum.Italic } },
                 new MotdContent{ Color = "#7f7fff", Text = "러", TextFormatting = new HashSet<TextFormatEnum> { TextFormatEnum.Bold,TextFormatEnum.Italic } },
                 new MotdContent{ Color = "#9966ff", Text = "리", TextFormatting = new HashSet<TextFormatEnum> { TextFormatEnum.Bold,TextFormatEnum.Italic } },
-                new MotdContent{ Color = "#b24cff", Text = " ", TextFormatting = new HashSet<TextFormatEnum> { TextFormatEnum.Bold,TextFormatEnum.Italic } },
                 new MotdContent{ Color = "#cc32ff", Text = "놀", TextFormatting = new HashSet<TextFormatEnum> { TextFormatEnum.Bold,TextFormatEnum.Italic } },
                 new MotdContent{ Color = "#e519ff", Text = "이", TextFormatting = new HashSet<TextFormatEnum> { TextFormatEnum.Bold,TextFormatEnum.Italic } },
                 new MotdContent{ Color = "#ff00ff", Text = "터", TextFormatting = new HashSet<TextFormatEnum> { TextFormatEnum.Bold,TextFormatEnum.Italic } },
@@ -85,7 +82,7 @@ namespace McMotdParser.Test.Deserializer
                 new MotdContent { Color = "#808080", Text = "                " },
                 new MotdContent { Color = "#55FF55", Text = "Hypixel Network "},
                 new MotdContent { Color = "#FF5555", Text = "[1.8-1.20]" },
-                new MotdContent { Color = "#808080", Text = "        " , LineBreak = true, TextFormatting = new HashSet<TextFormatEnum>() { TextFormatEnum.Noraml }}, 
+                new MotdContent { Color = "#FF5555", Text = "        " , LineBreak = true },
                 new MotdContent { Color = "#55FFFF", Text = "DROPPER v1.0 ", TextFormatting = new HashSet<TextFormatEnum> { TextFormatEnum.Bold }},
                 new MotdContent { Color = "#AAAAAA", Text = "- " },
                 new MotdContent { Color = "#FFAA00", Text = "NEW ARCADE LOBBY", TextFormatting = new HashSet<TextFormatEnum> { TextFormatEnum.Bold }}

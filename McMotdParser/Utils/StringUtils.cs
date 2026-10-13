@@ -1,62 +1,83 @@
-using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 
 namespace McMotdParser.Utils;
 
 public class StringUtils
 {
-    /// <summary>
-    /// This is a string converter for custom deserializers.
-    /// </summary>
-    /// <param name="motd">any motd string</param>
-    /// <returns>{ Contents : {any motd string}}</returns>
-    public static string ToJsonObjectString(string motd)
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.Append("{ \"Contents\" : ");
-        
-        //determine using "Section Sign"
-        //bool isStartObject = !motd.StartsWith("{");
-        
-        //if (isStartObject) sb.Append('\"');
-        sb.Append(motd);
-        //if (isStartObject) sb.Append('\"');
-        sb.Append(" }");
-            
-        return sb.ToString();
-    }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="motd"></param>
-    /// <returns>"some string §x§zstring"</returns>
+    public static string ToJsonObjectString(string motd) => "{ \"Contents\" : " + motd + " }";
+
     public static string EscapeCharacterReplace(string motd)
     {
-
-            motd = motd.Replace("\\r", "\r").Replace("\\n", "\n");
-            return motd.Replace("\r", "§x").Replace("\n", "§z");
-       
-        
+        ArgumentNullException.ThrowIfNull(motd);
+        var trimmed = motd.AsSpan().TrimStart();
+        if (!trimmed.IsEmpty && trimmed[0] is '{' or '[' or '"')
+        {
+            var normalized = MotdParser.EscapeJsonControls(motd);
+            try
+            {
+                using var document = JsonDocument.Parse(normalized, new JsonDocumentOptions { MaxDepth = MotdParser.MaxDepth });
+                return normalized;
+            }
+            catch (JsonException) { }
+        }
+        return JsonSerializer.Serialize(motd)[1..^1];
     }
+
     public static string QuotesREMOVE(string motd)
     {
-        if (motd.StartsWith(@""""))
+        ArgumentNullException.ThrowIfNull(motd);
+        if (motd.StartsWith('"'))
         {
-            return motd.Substring(2, motd.Length - 3);
+            try { return JsonSerializer.Deserialize<string>(motd) ?? string.Empty; }
+            catch (JsonException) { }
         }
-
         return motd;
     }
 
     public static string QuotesPlace(string motd)
     {
-        if (!motd.StartsWith("{"))
+        ArgumentNullException.ThrowIfNull(motd);
+        var trimmed = motd.AsSpan().TrimStart();
+        if (!trimmed.IsEmpty && trimmed[0] is '{' or '[' or '"')
         {
-            if (!motd.StartsWith(@""""))
+            var normalized = MotdParser.EscapeJsonControls(motd);
+            try
             {
-                return motd.Insert(0, "\"").Insert(motd.Length + 1 , "\""); //hmm...
+                using var document = JsonDocument.Parse(normalized, new JsonDocumentOptions { MaxDepth = MotdParser.MaxDepth });
+                return normalized;
             }
+            catch (JsonException) { }
         }
-        return motd;
+        return JsonSerializer.Serialize(motd);
+    }
+
+    public static string DecodeEscapes(string motd)
+    {
+        ArgumentNullException.ThrowIfNull(motd);
+        var result = new StringBuilder(motd.Length);
+        for (int i = 0; i < motd.Length; i++)
+        {
+            if (motd[i] != '\\' || i + 1 == motd.Length)
+            {
+                result.Append(motd[i]);
+                continue;
+            }
+            char escaped = motd[i + 1];
+            if (escaped == 'u' && i + 6 <= motd.Length
+                && ushort.TryParse(motd.AsSpan(i + 2, 4), System.Globalization.NumberStyles.HexNumber,
+                    System.Globalization.CultureInfo.InvariantCulture, out var unicode))
+            {
+                result.Append((char)unicode);
+                i += 5;
+            }
+            else if (escaped is 'n' or 'r' or 't' or 'f' or '\\' or '"' or '\'')
+            {
+                result.Append(escaped switch { 'n' => '\n', 'r' => '\r', 't' => '\t', 'f' => '\f', _ => escaped });
+                i++;
+            }
+            else result.Append(motd[i]);
+        }
+        return result.ToString();
     }
 }

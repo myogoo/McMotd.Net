@@ -1,43 +1,40 @@
+using System.Xml.Linq;
+
 namespace McMotdParser.Test;
 
 public class MotdParserTest
 {
-    [Fact]
-    public void ToHtmlSimpleTest()
+    [Theory]
+    [InlineData("기모찌서버", "기모찌서버")]
+    [InlineData("  hello\t world  ", "  hello\t world  ")]
+    [InlineData("<script>alert('x')</script>&", "<script>alert('x')</script>&")]
+    [InlineData("{\"text\":\"Hello \",\"extra\":[{\"text\":\"World\"}]}", "Hello World")]
+    public void HtmlPreservesAndEncodesText(string raw, string expected)
     {
-        string raw_motd = @"{""text"":""기모찌서버""}";
-
-        var raw_html = new MotdParser().ToHtml(raw_motd);
-        Assert.True(true);
+        var document = XElement.Parse(new MotdParser().ToHtml(raw));
+        Assert.Equal(expected, document.Value);
+        Assert.Equal("mcmotd-container", (string?)document.Attribute("class"));
+        Assert.Contains("white-space:pre-wrap", (string?)document.Attribute("style"));
+        Assert.All(document.Elements(), child => Assert.Equal("span", child.Name.LocalName));
     }
 
     [Fact]
-    public void ToHtmlComplexTest()
+    public void HtmlPreservesLineBreaksIncludingEmptyLines()
     {
-        string raw_motd = "{\"extra\":[{\"color\":\"aqua\",\"text\":\"◆ \"},{\"bold\":true,\"italic\":true,\"color\":\"#00ffff\",\"text\":\"스\"},{\"bold\":true,\"italic\":true,\"color\":\"#19e5ff\",\"text\":\"티\"},{\"bold\":true,\"italic\":true,\"color\":\"#33ccff\",\"text\":\"브\"},{\"bold\":true,\"italic\":true,\"color\":\"#4cb2ff\",\"text\":\"\"},{\"bold\":true,\"italic\":true,\"color\":\"#6699ff\",\"text\":\"갤\"},{\"bold\":true,\"italic\":true,\"color\":\"#7f7fff\",\"text\":\"러\"},{\"bold\":true,\"italic\":true,\"color\":\"#9966ff\",\"text\":\"리\"},{\"bold\":true,\"italic\":true,\"color\":\"#b24cff\",\"text\":\"\"},{\"bold\":true,\"italic\":true,\"color\":\"#cc32ff\",\"text\":\"놀\"},{\"bold\":true,\"italic\":true,\"color\":\"#e519ff\",\"text\":\"이\"},{\"bold\":true,\"italic\":true,\"color\":\"#ff00ff\",\"text\":\"터\"},{\"color\":\"light_purple\",\"text\":\" ◆\"},{\"color\":\"gray\",\"text\":\"건축/쉼터\"}],\"text\":\"\"}";
-        var raw_html = new MotdParser().ToHtml(raw_motd);
-        Assert.True(true);
+        var document = XElement.Parse(new MotdParser().ToHtml("A\r\n\r\nB\n"));
+        Assert.Equal(3, document.Elements("br").Count());
+        Assert.Equal("AB", document.Value);
     }
+
     [Fact]
-    public void ToHtmlComplexWithEscapeCharacterTest()
+    public void HtmlCombinesFormattingAndColor()
     {
-        string raw_motd = "{\"extra\":[{\"color\":\"aqua\",\"text\":\"◆ \"},{\"bold\":true,\"italic\":true,\"color\":\"#00ffff\",\"text\":\"스\"},{\"bold\":true,\"italic\":true,\"color\":\"#19e5ff\",\"text\":\"티\"},{\"bold\":true,\"italic\":true,\"color\":\"#33ccff\",\"text\":\"브\"},{\"bold\":true,\"italic\":true,\"color\":\"#4cb2ff\",\"text\":\"\"},{\"bold\":true,\"italic\":true,\"color\":\"#6699ff\",\"text\":\"갤\"},{\"bold\":true,\"italic\":true,\"color\":\"#7f7fff\",\"text\":\"러\"},{\"bold\":true,\"italic\":true,\"color\":\"#9966ff\",\"text\":\"리\"},{\"bold\":true,\"italic\":true,\"color\":\"#b24cff\",\"text\":\"\"},{\"bold\":true,\"italic\":true,\"color\":\"#cc32ff\",\"text\":\"놀\"},{\"bold\":true,\"italic\":true,\"color\":\"#e519ff\",\"text\":\"이\"},{\"bold\":true,\"italic\":true,\"color\":\"#ff00ff\",\"text\":\"터\"},{\"color\":\"light_purple\",\"text\":\" ◆\r\n\"},{\"color\":\"gray\",\"text\":\"건축/쉼터\"}],\"text\":\"\"}";
-        var raw_html = new MotdParser().ToHtml(raw_motd);
-        Assert.True(true);
-    }
-    [Fact]
-    public void ToHtmlSectionSignTest()
-    {
-        string raw_motd = "\"                §aHypixel Network §c[1.8-1.20]        §b§lDROPPER v1.0 §7- §6§lNEW ARCADE LOBBY\"";
-        var raw_html = new MotdParser().ToHtml(raw_motd);
-        Assert.True(true);
-    }
-    
-    [Fact]
-    public void ToHtmlSectionSignWithEscapeCharacterTest()
-    {
-        string raw_motd = "\"                §aHypixel Network §c[1.8-1.20]\r\n        §b§lDROPPER v1.0 §7- §6§lNEW ARCADE LOBBY\"";
-        var raw_html = new MotdParser().ToHtml(raw_motd);
-        Assert.True(true);
+        var document = XElement.Parse(new MotdParser().ToHtml("§b§l§o§n§mHello"));
+        var span = Assert.Single(document.Elements("span"));
+        var style = (string)span.Attribute("style")!;
+        Assert.Contains("color:#55FFFF;", style);
+        Assert.Contains("font-weight:bold;", style);
+        Assert.Contains("font-style:italic;", style);
+        Assert.Contains("text-decoration:underline line-through;", style);
     }
 }

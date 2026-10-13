@@ -23,9 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\McMotdParser.MAUI\McMotdParser.MAUI.csproj" />
-    <ProjectReference Include="..\McMotdParser.Razor\McMotdParser.Razor.csproj" />
     <ProjectReference Include="..\McMotdParser\McMotdParser.csproj" />
+    <ProjectReference Include="..\McMotdParser.Razor\McMotdParser.Razor.csproj" />
   </ItemGroup>
 
 </Project>

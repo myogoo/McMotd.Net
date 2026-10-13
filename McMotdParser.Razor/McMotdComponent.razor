@@ -1,63 +1,72 @@
-﻿@using McMotdParser.Data;
-@using McMotdParser;
 @using McMotdParser.Enum
-@using System.Text
-@using System.Text.Encodings.Web
-<div class="mcmotd-container">
-    @foreach(MotdContent motd in motds)
-    {
-        @if (motd.LineBreak)
-        {
-            <br/>
-        }
-        <span class="@getStyle(motd.TextFormatting) mcmotd-text" style="color: @motd.Color">
-            @if (motd.TextFormatting.Contains(TextFormatEnum.Bold))
-            {
-                <strong>@motd.Text</strong>
-            }else
-            {
-                @motd.Text    
-            }
-        </span>
-    }
-</div>
-@code{
+@implements IAsyncDisposable
+
+@((MarkupString)html)
+
+@code {
     [Parameter]
-    public string RawMotdString { get; set; }
-    
-    private List<MotdContent> motds { get; set; }
+    public string RawMotdString { get; set; } = string.Empty;
 
-    protected override void OnInitialized()
-    {
-        motds = new MotdParser().ToRazor(RawMotdString);
-        base.OnInitialized();
-    }
+    [Parameter]
+    public MotdParserOptions? ParserOptions { get; set; }
 
-    private string getStyle(HashSet<TextFormatEnum> TextFormats)
+    private MotdParser parser = new MotdParser();
+    private List<MotdContent> contents = new List<MotdContent>();
+    private string html = string.Empty;
+    private CancellationTokenSource? animationCancellation;
+    private Task animation = Task.CompletedTask;
+    private int renderVersion;
+    private bool disposed;
+
+    protected override async Task OnParametersSetAsync()
     {
-        StringBuilder sb = new StringBuilder();
-        foreach (var TextFormat in TextFormats)
+        int version = ++renderVersion;
+        await StopAnimation();
+        if (disposed || version != renderVersion) return;
+        parser = new MotdParser(ParserOptions ?? new MotdParserOptions());
+        contents = parser.deserialize(RawMotdString ?? string.Empty);
+        html = parser.RenderHtml(contents);
+        if (contents.Any(content => content.TextFormatting.Contains(TextFormatEnum.Obfuscated)))
         {
-            switch (TextFormat)
-            {
-                case TextFormatEnum.Bold:
-                    sb.Append("mcmotd-text-bold");
-                    break;
-                case TextFormatEnum.Italic:
-                    sb.Append("mcmotd-text-italic");
-                    break;
-                case TextFormatEnum.Underline:
-                    sb.Append("mcmotd-text-underline");
-                    break;
-                case TextFormatEnum.Striktethrough:
-                    sb.Append("mcmotd-text-strikethrough");
-                    break;    
-                default:
-                    sb.Append("mcmotd-text-normal");
-                    break;
-            }
-            sb.Append(" ");
+            animationCancellation = new CancellationTokenSource();
+            animation = Animate(animationCancellation.Token);
         }
-        return sb.ToString();
     }
-} 
+
+    private async Task Animate(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                await InvokeAsync(() =>
+                {
+                    if (cancellationToken.IsCancellationRequested) return;
+                    html = parser.RenderHtml(contents);
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+    }
+
+    private async Task StopAnimation()
+    {
+        var cancellation = animationCancellation;
+        var previousAnimation = animation;
+        animationCancellation = null;
+        animation = Task.CompletedTask;
+        if (cancellation == null) return;
+        cancellation.Cancel();
+        await previousAnimation;
+        cancellation.Dispose();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true;
+        renderVersion++;
+        await StopAnimation();
+    }
+}

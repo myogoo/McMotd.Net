@@ -2,7 +2,7 @@ namespace McMotdParser.Utils;
 
 public class StringUtilsBuilder
 {
-    private string RawMotd;
+    private string? RawMotd;
 
     public string build()
     {
@@ -12,24 +12,25 @@ public class StringUtilsBuilder
 
     public StringUtilsBuilder setString(string RawMotd)
     {
+        ArgumentNullException.ThrowIfNull(RawMotd);
         this.RawMotd = RawMotd;
         return this;
     }
     public StringUtilsBuilder QuotePlace()
     {
-        this.RawMotd = StringUtils.QuotesPlace(this.RawMotd);
+        this.RawMotd = StringUtils.QuotesPlace(build());
         return this;
     }
 
     public StringUtilsBuilder ToJsonObjectString()
     {
-        this.RawMotd = StringUtils.ToJsonObjectString(this.RawMotd);
+        this.RawMotd = StringUtils.ToJsonObjectString(build());
         return this;
     }
 
     public StringUtilsBuilder EscapeCharacterReplace()
     {
-        this.RawMotd = StringUtils.EscapeCharacterReplace(this.RawMotd);
+        this.RawMotd = StringUtils.EscapeCharacterReplace(build());
         return this;
     }
     

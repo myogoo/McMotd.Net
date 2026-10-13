@@ -1,52 +1,90 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using McMotdParser.Enum;
-using McMotdParser.MAUI.Extensions;
 
 namespace McMotdParser.MAUI;
 
 public partial class McMotdView : ContentView
 {
-    public string RawMotdString { get; set; }
-    public double? FontSize { get; set; }
+    public static readonly BindableProperty RawMotdStringProperty = BindableProperty.Create(
+        nameof(RawMotdString), typeof(string), typeof(McMotdView), string.Empty,
+        propertyChanged: (view, _, _) => ((McMotdView)view).Render());
+
+    public static readonly BindableProperty FontSizeProperty = BindableProperty.Create(
+        nameof(FontSize), typeof(double?), typeof(McMotdView), null,
+        propertyChanged: (view, _, _) => ((McMotdView)view).Render());
+
+    public static readonly BindableProperty ParserOptionsProperty = BindableProperty.Create(
+        nameof(ParserOptions), typeof(MotdParserOptions), typeof(McMotdView), null,
+        propertyChanged: (view, _, _) => ((McMotdView)view).Render());
+
+    public string RawMotdString
+    {
+        get => (string)GetValue(RawMotdStringProperty);
+        set => SetValue(RawMotdStringProperty, value);
+    }
+
+    public double? FontSize
+    {
+        get => (double?)GetValue(FontSizeProperty);
+        set => SetValue(FontSizeProperty, value);
+    }
+
+    public MotdParserOptions ParserOptions
+    {
+        get => (MotdParserOptions)GetValue(ParserOptionsProperty);
+        set => SetValue(ParserOptionsProperty, value);
+    }
+
+    private IDispatcherTimer animation;
+    private readonly List<(MotdContent Content, Span Span)> obfuscated = new();
+
     public McMotdView()
     {
         InitializeComponent();
-    }   
+        Unloaded += (_, _) => animation?.Stop();
+    }
 
-    private void McMotdView_OnLoaded(object sender, EventArgs e)
+    private void McMotdView_OnLoaded(object sender, EventArgs e) => Render();
+
+    private void Render()
     {
-        var motds = new MotdParser().deserialize(RawMotdString);
-        StackLayout h_stack = new StackLayout() { Orientation = StackOrientation.Horizontal };
-        foreach (var motd in motds)
+        if (MotdStackLayout == null) return;
+        animation?.Stop();
+        obfuscated.Clear();
+        var contents = new MotdParser(ParserOptions ?? new MotdParserOptions()).deserialize(RawMotdString ?? string.Empty);
+        var formatted = new FormattedString();
+        foreach (var content in contents)
         {
-            if (motd.LineBreak)
-            { 
-                MotdStackLayout.Children.Add(h_stack);
-                h_stack = new StackLayout() { Orientation = StackOrientation.Horizontal };
-            }
-            var text = new Label();
-            text.FontSize = FontSize ?? 12;
-            text.Text = motd.Text;
-            text.TextColor = Color.FromArgb(motd.Color);
-            foreach (var textformat in motd.TextFormatting)
+            var span = new Span
             {
-                if (textformat == TextFormatEnum.Bold)
-                    text.FontAttributes = FontAttributes.Bold;
-                if (textformat == TextFormatEnum.Italic)
-                    text.FontAttributes = FontAttributes.Italic;
-                if (textformat == TextFormatEnum.Underline)
-                    text.TextDecorations = TextDecorations.Underline;
-                if (textformat == TextFormatEnum.Striktethrough)
-                    text.TextDecorations = TextDecorations.Strikethrough;
-            }
-            h_stack.Children.Add(text);
+                Text = (content.LineBreak ? "\n" : "") + content.GetDisplayText(),
+                TextColor = Color.FromArgb(content.Color)
+            };
+            var formats = content.TextFormatting;
+            if (formats.Contains(TextFormatEnum.Bold)) span.FontAttributes |= FontAttributes.Bold;
+            if (formats.Contains(TextFormatEnum.Italic)) span.FontAttributes |= FontAttributes.Italic;
+            if (formats.Contains(TextFormatEnum.Underline)) span.TextDecorations |= TextDecorations.Underline;
+            if (formats.Contains(TextFormatEnum.Striktethrough)) span.TextDecorations |= TextDecorations.Strikethrough;
+            formatted.Spans.Add(span);
+            if (formats.Contains(TextFormatEnum.Obfuscated)) obfuscated.Add((content, span));
         }
-
-        
-        MotdStackLayout.Children.Add(h_stack);
+        var label = new Label { FontSize = FontSize ?? 12, FormattedText = formatted };
+        SemanticProperties.SetDescription(label,
+            string.Concat(contents.Select(content => (content.LineBreak ? "\n" : "") + content.Text)));
+        MotdStackLayout.Children.Clear();
+        MotdStackLayout.Children.Add(label);
+        if (IsLoaded && obfuscated.Count > 0)
+        {
+            if (animation == null)
+            {
+                animation = Dispatcher.CreateTimer();
+                animation.Interval = TimeSpan.FromMilliseconds(100);
+                animation.Tick += (_, _) =>
+                {
+                    foreach (var (content, span) in obfuscated)
+                        span.Text = (content.LineBreak ? "\n" : "") + content.GetDisplayText();
+                };
+            }
+            animation.Start();
+        }
     }
 }

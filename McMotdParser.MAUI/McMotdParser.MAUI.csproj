@@ -16,12 +16,12 @@
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
 		<PackageId>McMotd.Net.MAUI</PackageId>
-		<Version>0.0.2</Version>
+		<Version>0.1.0</Version>
 		<Authors>NJoyShadow</Authors>
 		<Description></Description>
-		<PackageProjectUrl>https://github.com/N-Joy-Shadow/McMotd.Net</PackageProjectUrl>
-		<RepositoryUrl>https://github.com/N-Joy-Shadow/McMotd.Net/tree/stable/McMotdParser.MAUI</RepositoryUrl>
-		<RepositoryType>github</RepositoryType>
+		<PackageProjectUrl>https://github.com/myogoo/McMotd.Net</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/myogoo/McMotd.Net</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
 		<PackageTags>minecraft,minecraft-motd,motd,maui</PackageTags>
 		<Copyright>Copyright (c) NJoyShadow 2023</Copyright>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
